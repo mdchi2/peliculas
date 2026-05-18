@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Filmografía de Actores</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --glass-bg: rgba(30, 41, 59, 0.7);
+            --glass-border: rgba(255, 255, 255, 0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: radial-gradient(circle at top right, #1e293b, var(--bg-color));
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        header {
+            width: 100%;
+            padding: 2rem;
+            text-align: center;
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--glass-border);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 1200px;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            padding-bottom: 4rem;
+        }
+
+        .settings-panel {
+            background: var(--glass-bg);
+            padding: 1.5rem;
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            max-width: 600px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .settings-panel p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .search-section {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .input-group {
+            position: relative;
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .input-group i {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+        }
+
+        input {
+            width: 100%;
+            padding: 1rem 1rem 1rem 3rem;
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+            background: rgba(15, 23, 42, 0.6);
+            color: white;
+            font-size: 1rem;
+            font-family: inherit;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        input:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+
+        button {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 12px;
+            background: var(--accent);
+            color: white;
+            font-size: 1rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        button:hover {
+            background: var(--accent-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(59, 130, 246, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .loader {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(255, 255, 255, 0.1);
+            border-left-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .actor-info {
+            display: none;
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .actor-info img {
+            width: 150px;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 4px solid var(--glass-border);
+            margin-bottom: 1rem;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+
+        .actor-info h2 {
+            font-size: 2rem;
+        }
+
+        .movies-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 2rem;
+        }
+
+        .movie-card {
+            background: var(--glass-bg);
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid var(--glass-border);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .movie-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            border-color: rgba(255,255,255,0.2);
+            z-index: 10;
+        }
+
+        .poster-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 2/3;
+            overflow: hidden;
+            background: #1e293b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .poster-container i {
+            font-size: 4rem;
+            color: var(--glass-border);
+        }
+
+        .movie-poster {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: opacity 0.3s ease;
+        }
+
+        .movie-info {
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+
+        .movie-title {
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin-bottom: 0.5rem;
+            line-height: 1.3;
+        }
+
+        .movie-year {
+            color: var(--accent);
+            font-weight: 800;
+            font-size: 1.2rem;
+            margin-top: auto;
+        }
+
+        .error-message {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.4);
+            color: #fca5a5;
+            padding: 1rem;
+            border-radius: 12px;
+            text-align: center;
+            display: none;
+        }
+        
+        /* Tooltip style */
+        .api-key-hint {
+            display: inline-block;
+            margin-top: 10px;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+        
+        .api-key-hint a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+        
+        .api-key-hint a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>🎬 Filmografía de Actores</h1>
+        <p>Encuentra todas las películas de tu actor favorito ordenadas cronológicamente</p>
+    </header>
+
+    <div class="container">
+        
+        <!-- Configuración de API Key -->
+        <div class="settings-panel" id="apiKeyPanel">
+            <h3><i class="fas fa-key"></i> Configuración de la API</h3>
+            <p>Para buscar películas, necesitamos una clave API gratuita de The Movie Database (TMDB).</p>
+            <div class="search-section">
+                <div class="input-group">
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="api-key-input" placeholder="Ingresa tu API Key de TMDB (v3 auth)">
+                </div>
+                <button id="save-api-btn"><i class="fas fa-save"></i> Guardar</button>
+            </div>
+            <span class="api-key-hint">Puedes obtener una clave API gratuita registrándote en <a href="https://www.themoviedb.org/settings/api" target="_blank">TMDB</a>.</span>
+        </div>
+
+        <!-- Búsqueda de Actor -->
+        <div class="search-section">
+            <div class="input-group" style="flex: 2;">
+                <i class="fas fa-user"></i>
+                <input type="text" id="actor-input" placeholder="Ej. Leonardo DiCaprio, Brad Pitt, Meryl Streep..." autocomplete="off">
+            </div>
+            <button id="search-btn"><i class="fas fa-search"></i> Buscar Películas</button>
+        </div>
+
+        <!-- Mensaje de Error -->
+        <div id="error-message" class="error-message"></div>
+
+        <!-- Loader -->
+        <div class="loader" id="loader">
+            <div class="spinner"></div>
+            <p>Buscando en la base de datos temporal...</p>
+        </div>
+
+        <!-- Info del Actor -->
+        <div class="actor-info" id="actor-info">
+            <img id="actor-image" src="" alt="Actor">
+            <h2 id="actor-name">Nombre del Actor</h2>
+            <p id="actor-movies-count" style="color: var(--text-muted); margin-top: 0.5rem;"></p>
+        </div>
+
+        <!-- Grilla de Películas -->
+        <div class="movies-grid" id="movies-grid">
+            <!-- Las tarjetas de películas se generarán aquí -->
+        </div>
+
+    </div>
+
+    <script>
+        const API_BASE_URL = 'https://api.themoviedb.org/3';
+        const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
+        
+        // Elementos del DOM
+        const apiKeyInput = document.getElementById('api-key-input');
+        const saveApiBtn = document.getElementById('save-api-btn');
+        const actorInput = document.getElementById('actor-input');
+        const searchBtn = document.getElementById('search-btn');
+        const moviesGrid = document.getElementById('movies-grid');
+        const loader = document.getElementById('loader');
+        const errorMessage = document.getElementById('error-message');
+        const actorInfo = document.getElementById('actor-info');
+        const actorImage = document.getElementById('actor-image');
+        const actorName = document.getElementById('actor-name');
+        const actorMoviesCount = document.getElementById('actor-movies-count');
+        const apiKeyPanel = document.getElementById('apiKeyPanel');
+
+        // Cargar API Key guardada
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedApiKey = localStorage.getItem('tmdb_api_key');
+            if (savedApiKey) {
+                apiKeyInput.value = savedApiKey;
+                // Opcional: Ocultar el panel si ya hay key
+                // apiKeyPanel.style.display = 'none';
+            }
+            
+            // Si presionan Enter en el input
+            actorInput.addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    handleSearch();
+                }
+            });
+        });
+
+        // Guardar API Key
+        saveApiBtn.addEventListener('click', () => {
+            const key = apiKeyInput.value.trim();
+            if (key) {
+                localStorage.setItem('tmdb_api_key', key);
+                showError('API Key guardada exitosamente.', true);
+                setTimeout(() => hideError(), 3000);
+            } else {
+                showError('Por favor ingresa una API Key válida.');
+            }
+        });
+
+        // Evento de Búsqueda
+        searchBtn.addEventListener('click', handleSearch);
+
+        async function handleSearch() {
+            const apiKey = apiKeyInput.value.trim();
+            const query = actorInput.value.trim();
+
+            if (!apiKey) {
+                showError('Debes ingresar tu API Key de TMDB primero.');
+                apiKeyInput.focus();
+                return;
+            }
+
+            if (!query) {
+                showError('Por favor ingresa el nombre de un actor.');
+                actorInput.focus();
+                return;
+            }
+
+            hideError();
+            clearResults();
+            showLoader();
+
+            try {
+                // 1. Buscar al actor
+                const searchRes = await fetch(`${API_BASE_URL}/search/person?api_key=${apiKey}&query=${encodeURIComponent(query)}&language=es-ES`);
+                if (!searchRes.ok) {
+                    if (searchRes.status === 401) throw new Error("API Key inválida.");
+                    throw new Error("Error al buscar el actor.");
+                }
+                const searchData = await searchRes.json();
+
+                if (searchData.results.length === 0) {
+                    throw new Error("No se encontró ningún actor con ese nombre.");
+                }
+
+                // Tomamos el primer resultado que sea actor/actriz (departamento Acting)
+                const person = searchData.results.find(p => p.known_for_department === 'Acting') || searchData.results[0];
+                const personId = person.id;
+
+                // Mostrar Info del Actor
+                actorName.textContent = person.name;
+                if (person.profile_path) {
+                    actorImage.src = `${IMAGE_BASE_URL}${person.profile_path}`;
+                    actorImage.style.display = 'inline-block';
+                } else {
+                    actorImage.style.display = 'none';
+                }
+                actorInfo.style.display = 'block';
+
+                // 2. Obtener créditos de películas del actor
+                const creditsRes = await fetch(`${API_BASE_URL}/person/${personId}/movie_credits?api_key=${apiKey}&language=es-ES`);
+                if (!creditsRes.ok) throw new Error("Error al obtener las películas.");
+                
+                const creditsData = await creditsRes.json();
+                
+                // Filtrar solo donde actuó (no dirigió/produjo, al menos que queramos todo)
+                // y que tengan fecha de lanzamiento (para poder ordenar)
+                let movies = creditsData.cast.filter(movie => movie.release_date);
+
+                // Eliminar duplicados si hay (a veces aparecen 2 roles en la misma peli)
+                const uniqueMovies = [];
+                const map = new Map();
+                for (const item of movies) {
+                    if (!map.has(item.id)) {
+                        map.set(item.id, true);
+                        uniqueMovies.push(item);
+                    }
+                }
+                movies = uniqueMovies;
+
+                // Ordenar cronológicamente de mayor a menor (más recientes primero)
+                movies.sort((a, b) => new Date(b.release_date) - new Date(a.release_date));
+
+                actorMoviesCount.textContent = `${movies.length} películas encontradas`;
+
+                if (movies.length === 0) {
+                    moviesGrid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--text-muted);">No se encontraron películas con fecha de estreno.</p>';
+                    return;
+                }
+
+                // Renderizar
+                renderMovies(movies);
+
+            } catch (error) {
+                showError(error.message);
+                actorInfo.style.display = 'none';
+            } finally {
+                hideLoader();
+            }
+        }
+
+        function renderMovies(movies) {
+            movies.forEach(movie => {
+                const year = movie.release_date.split('-')[0];
+                
+                const card = document.createElement('div');
+                card.className = 'movie-card';
+
+                // Imagen
+                const posterContainer = document.createElement('div');
+                posterContainer.className = 'poster-container';
+                
+                if (movie.poster_path) {
+                    const img = document.createElement('img');
+                    img.className = 'movie-poster';
+                    img.src = `${IMAGE_BASE_URL}${movie.poster_path}`;
+                    img.alt = `Póster de ${movie.title}`;
+                    // Lazy loading
+                    img.loading = 'lazy';
+                    posterContainer.appendChild(img);
+                } else {
+                    // Placeholder si no hay imagen
+                    const icon = document.createElement('i');
+                    icon.className = 'fas fa-film';
+                    posterContainer.appendChild(icon);
+                }
+
+                // Info
+                const info = document.createElement('div');
+                info.className = 'movie-info';
+                
+                const title = document.createElement('div');
+                title.className = 'movie-title';
+                title.textContent = movie.title;
+                
+                const yearEl = document.createElement('div');
+                yearEl.className = 'movie-year';
+                yearEl.textContent = year;
+
+                info.appendChild(title);
+                info.appendChild(yearEl);
+
+                card.appendChild(posterContainer);
+                card.appendChild(info);
+
+                moviesGrid.appendChild(card);
+            });
+        }
+
+        function showLoader() {
+            loader.style.display = 'block';
+        }
+
+        function hideLoader() {
+            loader.style.display = 'none';
+        }
+
+        function showError(msg, isSuccess = false) {
+            errorMessage.textContent = msg;
+            errorMessage.style.display = 'block';
+            if (isSuccess) {
+                errorMessage.style.backgroundColor = 'rgba(16, 185, 129, 0.2)';
+                errorMessage.style.borderColor = 'rgba(16, 185, 129, 0.4)';
+                errorMessage.style.color = '#6ee7b7';
+            } else {
+                errorMessage.style.backgroundColor = 'rgba(239, 68, 68, 0.2)';
+                errorMessage.style.borderColor = 'rgba(239, 68, 68, 0.4)';
+                errorMessage.style.color = '#fca5a5';
+            }
+        }
+
+        function hideError() {
+            errorMessage.style.display = 'none';
+        }
+
+        function clearResults() {
+            moviesGrid.innerHTML = '';
+            actorInfo.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
