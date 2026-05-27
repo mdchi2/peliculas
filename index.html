@@ -101,9 +101,11 @@
             top: 50%;
             transform: translateY(-50%);
             color: var(--text-muted);
+            pointer-events: none;
+            z-index: 5;
         }
 
-        input {
+        input, select {
             width: 100%;
             padding: 1rem 1rem 1rem 3rem;
             border-radius: 12px;
@@ -116,9 +118,26 @@
             transition: all 0.3s ease;
         }
 
-        input:focus {
+        input:focus, select:focus {
             border-color: var(--accent);
             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+
+        select {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            cursor: pointer;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1.25rem;
+            padding-right: 2.5rem;
+        }
+
+        select option {
+            background-color: #0f172a;
+            color: white;
         }
 
         button {
@@ -248,6 +267,29 @@
             line-height: 1.3;
         }
 
+        .movie-genres {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.3rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .genre-tag {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 6px;
+            padding: 0.2rem 0.4rem;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .genre-tag.highlight-risa {
+            background: rgba(167, 139, 250, 0.15);
+            border-color: rgba(167, 139, 250, 0.3);
+            color: #c084fc;
+        }
+
         .movie-year {
             color: var(--accent);
             font-weight: 800;
@@ -308,9 +350,29 @@
 
         <!-- Búsqueda de Actor -->
         <div class="search-section">
-            <div class="input-group" style="flex: 2;">
+            <div class="input-group" style="flex: 2; min-width: 250px;">
                 <i class="fas fa-user"></i>
-                <input type="text" id="actor-input" placeholder="Ej. Leonardo DiCaprio, Brad Pitt, Meryl Streep..." autocomplete="off">
+                <input type="text" id="actor-input" placeholder="Escribe el nombre del actor..." autocomplete="off">
+            </div>
+            <div class="input-group" style="flex: 1; min-width: 180px;">
+                <i class="fas fa-film"></i>
+                <select id="genre-select">
+                    <option value="all">Todos los géneros</option>
+                    <option value="35">Risa / Comedia</option>
+                    <option value="28">Acción</option>
+                    <option value="12">Aventura</option>
+                    <option value="16">Animación</option>
+                    <option value="18">Drama</option>
+                    <option value="27">Terror</option>
+                    <option value="878">Ciencia Ficción</option>
+                    <option value="53">Suspenso</option>
+                    <option value="10749">Romance</option>
+                    <option value="14">Fantasía</option>
+                </select>
+            </div>
+            <div class="input-group" style="flex: 0.8; min-width: 120px;">
+                <i class="fas fa-calendar"></i>
+                <input type="text" id="year-input" placeholder="Año" maxlength="4" autocomplete="off">
             </div>
             <button id="search-btn"><i class="fas fa-search"></i> Buscar Películas</button>
         </div>
@@ -342,10 +404,34 @@
         const API_BASE_URL = 'https://api.themoviedb.org/3';
         const IMAGE_BASE_URL = 'https://image.tmdb.org/t/p/w500';
         
+        // Mapeo de IDs de Géneros de TMDB
+        const GENRES_MAP = {
+            28: 'Acción',
+            12: 'Aventura',
+            16: 'Animación',
+            35: 'Risa', // Risa / Comedia
+            80: 'Crimen',
+            99: 'Documental',
+            18: 'Drama',
+            10751: 'Familiar',
+            14: 'Fantasía',
+            36: 'Historia',
+            27: 'Terror',
+            10402: 'Música',
+            9648: 'Misterio',
+            10749: 'Romance',
+            878: 'Ciencia Ficción',
+            10770: 'Pelicula de TV',
+            53: 'Suspenso',
+            10752: 'Bélica',
+            37: 'Western'
+        };
+
         // Elementos del DOM
         const apiKeyInput = document.getElementById('api-key-input');
         const saveApiBtn = document.getElementById('save-api-btn');
         const actorInput = document.getElementById('actor-input');
+        const genreSelect = document.getElementById('genre-select');
         const searchBtn = document.getElementById('search-btn');
         const moviesGrid = document.getElementById('movies-grid');
         const loader = document.getElementById('loader');
@@ -355,20 +441,58 @@
         const actorName = document.getElementById('actor-name');
         const actorMoviesCount = document.getElementById('actor-movies-count');
         const apiKeyPanel = document.getElementById('apiKeyPanel');
+        const yearInput = document.getElementById('year-input');
+
+        // Estado de la aplicación
+        let currentMovies = [];
 
         // Cargar API Key guardada
         document.addEventListener('DOMContentLoaded', () => {
             const savedApiKey = localStorage.getItem('tmdb_api_key');
             if (savedApiKey) {
                 apiKeyInput.value = savedApiKey;
-                // Opcional: Ocultar el panel si ya hay key
-                // apiKeyPanel.style.display = 'none';
             }
             
-            // Si presionan Enter en el input
+            // Limitar año a números
+            yearInput.addEventListener('input', function() {
+                this.value = this.value.replace(/[^0-9]/g, '');
+            });
+            
+            // Si presionan Enter en el input de año
+            yearInput.addEventListener('keypress', function (e) {
+                if (e.key === 'Enter') {
+                    handleSearch();
+                }
+            });
+
+            // Si presionan Enter en el input de actor
             actorInput.addEventListener('keypress', function (e) {
                 if (e.key === 'Enter') {
                     handleSearch();
+                }
+            });
+
+            // Evento al cambiar el género
+            genreSelect.addEventListener('change', () => {
+                const query = actorInput.value.trim();
+                if (query) {
+                    if (currentMovies.length > 0) {
+                        filterAndRenderMovies();
+                    }
+                } else {
+                    const apiKey = apiKeyInput.value.trim();
+                    const selectedYear = yearInput.value.trim();
+                    if (apiKey && (genreSelect.value !== 'all' || selectedYear)) {
+                        handleSearch();
+                    }
+                }
+            });
+
+            // Evento al cambiar/escribir en el año para actores
+            yearInput.addEventListener('input', () => {
+                const query = actorInput.value.trim();
+                if (query && currentMovies.length > 0) {
+                    filterAndRenderMovies();
                 }
             });
         });
@@ -399,8 +523,84 @@
             }
 
             if (!query) {
-                showError('Por favor ingresa el nombre de un actor.');
-                actorInput.focus();
+                const selectedGenreId = genreSelect.value;
+                const selectedYear = yearInput.value.trim();
+
+                if (selectedGenreId === 'all' && !selectedYear) {
+                    showError('Por favor escribe un actor, o selecciona un género y/o ingresa un año para buscar.');
+                    actorInput.focus();
+                    return;
+                }
+
+                hideError();
+                clearResults();
+                showLoader();
+
+                try {
+                    let url = `${API_BASE_URL}/discover/movie?api_key=${apiKey}&language=es-ES&sort_by=popularity.desc`;
+                    if (selectedGenreId !== 'all') {
+                        url += `&with_genres=${selectedGenreId}`;
+                    }
+                    if (selectedYear) {
+                        url += `&primary_release_year=${selectedYear}`;
+                    }
+
+                    const discoverRes = await fetch(url);
+                    if (!discoverRes.ok) {
+                        if (discoverRes.status === 401) throw new Error("API Key inválida.");
+                        throw new Error("Error al realizar la búsqueda.");
+                    }
+                    const discoverData = await discoverRes.json();
+
+                    if (discoverData.results.length === 0) {
+                        throw new Error("No se encontraron películas con los criterios seleccionados.");
+                    }
+
+                    let allResults = discoverData.results;
+                    const totalPages = Math.min(discoverData.total_pages, 20);
+
+                    if (totalPages > 1) {
+                        const promises = [];
+                        for (let p = 2; p <= totalPages; p++) {
+                            promises.push(
+                                fetch(`${url}&page=${p}`)
+                                    .then(res => res.ok ? res.json() : { results: [] })
+                                    .catch(() => ({ results: [] }))
+                            );
+                        }
+                        const pagesData = await Promise.all(promises);
+                        pagesData.forEach(pData => {
+                            if (pData && pData.results) {
+                                allResults = allResults.concat(pData.results);
+                            }
+                        });
+                    }
+
+                    let genreText = selectedGenreId !== 'all' ? GENRES_MAP[selectedGenreId] : '';
+                    let titleText = 'Películas';
+                    if (genreText && selectedYear) {
+                        titleText = `Películas de ${genreText} (${selectedYear})`;
+                    } else if (genreText) {
+                        titleText = `Películas de ${genreText}`;
+                    } else if (selectedYear) {
+                        titleText = `Películas del año ${selectedYear}`;
+                    }
+
+                    actorName.textContent = titleText;
+                    actorImage.style.display = 'none';
+                    actorInfo.style.display = 'block';
+
+                    currentMovies = allResults.filter(movie => movie.release_date);
+                    currentMovies.sort((a, b) => new Date(b.release_date) - new Date(a.release_date));
+
+                    filterAndRenderMovies();
+
+                } catch (error) {
+                    showError(error.message);
+                    actorInfo.style.display = 'none';
+                } finally {
+                    hideLoader();
+                }
                 return;
             }
 
@@ -459,15 +659,16 @@
                 // Ordenar cronológicamente de mayor a menor (más recientes primero)
                 movies.sort((a, b) => new Date(b.release_date) - new Date(a.release_date));
 
-                actorMoviesCount.textContent = `${movies.length} películas encontradas`;
+                currentMovies = movies;
 
-                if (movies.length === 0) {
+                if (currentMovies.length === 0) {
+                    actorMoviesCount.textContent = '0 películas encontradas';
                     moviesGrid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--text-muted);">No se encontraron películas con fecha de estreno.</p>';
                     return;
                 }
 
-                // Renderizar
-                renderMovies(movies);
+                // Filtrar y renderizar películas según la selección actual
+                filterAndRenderMovies();
 
             } catch (error) {
                 showError(error.message);
@@ -475,6 +676,49 @@
             } finally {
                 hideLoader();
             }
+        }
+
+        function filterAndRenderMovies() {
+            const selectedGenreId = genreSelect.value;
+            const selectedYear = yearInput.value.trim();
+            let filteredMovies = currentMovies;
+
+            if (selectedGenreId !== 'all') {
+                const genreId = parseInt(selectedGenreId, 10);
+                filteredMovies = filteredMovies.filter(movie => 
+                    movie.genre_ids && movie.genre_ids.includes(genreId)
+                );
+            }
+
+            if (selectedYear) {
+                filteredMovies = filteredMovies.filter(movie => {
+                    if (!movie.release_date) return false;
+                    const year = movie.release_date.split('-')[0];
+                    return year === selectedYear;
+                });
+            }
+
+            // Limpiar la cuadrícula
+            moviesGrid.innerHTML = '';
+
+            // Mostrar el recuento de películas
+            let suffix = '';
+            if (selectedGenreId !== 'all' && selectedYear) {
+                suffix = ` de ${GENRES_MAP[selectedGenreId]} del año ${selectedYear}`;
+            } else if (selectedGenreId !== 'all') {
+                suffix = ` de ${GENRES_MAP[selectedGenreId]}`;
+            } else if (selectedYear) {
+                suffix = ` del año ${selectedYear}`;
+            }
+            actorMoviesCount.textContent = `${filteredMovies.length} películas encontradas${suffix}`;
+
+            if (filteredMovies.length === 0) {
+                moviesGrid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: var(--text-muted); margin-top: 2rem;">No se encontraron películas para los criterios seleccionados.</p>';
+                return;
+            }
+
+            // Renderizar las películas filtradas
+            renderMovies(filteredMovies);
         }
 
         function renderMovies(movies) {
@@ -510,12 +754,32 @@
                 const title = document.createElement('div');
                 title.className = 'movie-title';
                 title.textContent = movie.title;
+
+                // Etiquetas de Género
+                const genresEl = document.createElement('div');
+                genresEl.className = 'movie-genres';
+
+                if (movie.genre_ids && movie.genre_ids.length > 0) {
+                    movie.genre_ids.slice(0, 3).forEach(genreId => {
+                        const genreName = GENRES_MAP[genreId];
+                        if (genreName) {
+                            const tag = document.createElement('span');
+                            tag.className = 'genre-tag';
+                            if (genreId === 35) {
+                                tag.classList.add('highlight-risa');
+                            }
+                            tag.textContent = genreName;
+                            genresEl.appendChild(tag);
+                        }
+                    });
+                }
                 
                 const yearEl = document.createElement('div');
                 yearEl.className = 'movie-year';
                 yearEl.textContent = year;
 
                 info.appendChild(title);
+                info.appendChild(genresEl);
                 info.appendChild(yearEl);
 
                 card.appendChild(posterContainer);
@@ -554,6 +818,7 @@
         function clearResults() {
             moviesGrid.innerHTML = '';
             actorInfo.style.display = 'none';
+            currentMovies = [];
         }
     </script>
 </body>
