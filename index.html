@@ -221,6 +221,8 @@
             display: flex;
             flex-direction: column;
             position: relative;
+            text-decoration: none;
+            color: inherit;
         }
 
         .movie-card:hover {
@@ -725,8 +727,11 @@
             movies.forEach(movie => {
                 const year = movie.release_date.split('-')[0];
                 
-                const card = document.createElement('div');
+                const card = document.createElement('a');
                 card.className = 'movie-card';
+                card.href = `https://www.youtube.com/results?search_query=${encodeURIComponent(movie.title + ' ' + year + ' trailer español')}`;
+                card.target = '_blank';
+                card.rel = 'noopener noreferrer';
 
                 // Imagen
                 const posterContainer = document.createElement('div');
